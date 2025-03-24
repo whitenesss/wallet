@@ -38,7 +38,7 @@
 git clone https://github.com/whitenesss/wallet.git
 cd wallet-app
 ```
-### Создайте /src/.env #Заполнить из .env.example
+
 ### Запуск
 ```bash
 ./scripts/start_project.sh
