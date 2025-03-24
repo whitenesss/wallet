@@ -5,8 +5,17 @@ export ENVIRONMENT=local
 export PYTHONDONTWRITEBYTECODE=1
 
 # Путь к основному .env файлу
-MAIN_ENV=.src.env
+MAIN_ENV=/src/.env
 TEMPLATE_ENV=.env.example
+
+# Проверка наличия необходимых файлов
+required_files=("alembic.ini" "pyproject.toml" "src/main.py")
+for file in "${required_files[@]}"; do
+    if [[ ! -f $file ]]; then
+        echo "❌ Отсутствует обязательный файл: $file"
+        exit 1
+    fi
+done
 
 # Создаем .env из примера если отсутствует
 if [[ ! -f ${MAIN_ENV} ]]; then
@@ -19,30 +28,21 @@ if [[ ! -f ${MAIN_ENV} ]]; then
     fi
 fi
 
-# Запуск контейнеров
+# Запуск контейнеров с автоматическим выполнением миграций
 echo "🚀 Запуск Docker-сервисов..."
 docker-compose up --build --detach
 
-echo -e "\n⏳ Ожидание инициализации БД..."
-docker-compose exec db bash -c '
-    until pg_isready -U $POSTGRES_USER -d $POSTGRES_DB; do
-        echo "Ждем PostgreSQL..."
-        sleep 2
-    done'
-
-echo -e "\n🛠 Выполнение миграций..."
-docker-compose exec app alembic upgrade head
-
-echo -e "\n🔍 Проверка сервисов:"
-docker-compose exec app bash -c '
-    echo "Запуск FastAPI...";
-    uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload &
-
-    echo "Запуск Telegram бота...";
-    python src/telegram/bot.py &
-
-    wait'
+echo -e "\n⏳ Ожидание инициализации БД и выполнения миграций..."
+docker-compose logs -f app | grep -q "Application startup complete"
 
 echo -e "\n✅ Все компоненты запущены!\nДоступные сервисы:"
 echo "• FastAPI: http://localhost:8000/docs"
 echo "• PostgreSQL: localhost:5432"
+echo "• Просмотр логов: docker-compose logs -f"
+
+# Опционально: автоматическое открытие документации в браузере
+if command -v xdg-open &> /dev/null; then
+    xdg-open "http://localhost:8000/docs"
+elif command -v open &> /dev/null; then
+    open "http://localhost:8000/docs"
+fi

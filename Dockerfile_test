@@ -1,12 +1,18 @@
+# Используем тот же базовый образ Python
 FROM python:3.12.8-slim
 
+# Указываем рабочую директорию
 WORKDIR /app
 
+# Копируем все файлы в контейнер
 COPY . .
 
+# Устанавливаем Poetry и зависимости
 RUN pip install poetry
-RUN poetry install --no-root --without dev
+RUN poetry install --no-root
 
-ENV PYTHONPATH=/app/src
+# Устанавливаем pytest для тестов
+RUN poetry add --dev pytest pytest-asyncio
 
-CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Указываем, что нужно запустить тесты
+CMD ["poetry", "run", "pytest"]

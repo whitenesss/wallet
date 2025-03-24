@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: wallet_db_test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: wallet_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile_test
+    container_name: wallet_api_test
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/wallet_test
+    networks:
+      - app-network
+    command: >
+      /bin/sh -c "poetry run alembic upgrade head && poetry run pytest --maxfail=1 --disable-warnings -q"
+
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata_test:
